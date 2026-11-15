@@ -9,21 +9,13 @@ class CustomMessages:
 
     # Auth
     login_success = "Login successful"
-    user_fetched = "User fetched successfully"
+    invalid_credentials = "Invalid username or password"
+    admin_fetched = "Admin fetched successfully"
     auth_header_missing = "Authorization header missing"
-    token_expired = "Access token has expired"
-    token_invalid = "Access token is invalid"
-    user_not_found = "User account no longer exists"
-    user_disabled = "User account is disabled"
-    admin_required = "Admin access required"
-
-    # Google sign-in
-    oauth_not_configured = "Google sign-in is not configured on the server"
-    google_code_exchange_failed = "Google sign-in failed. Please try again."
-    invalid_google_token = "Google sign-in token is invalid or expired"
-    unexpected_token_issuer = "Google sign-in token has an unexpected issuer"
-    email_not_verified = "Your Google email address is not verified"
-    google_payload_missing = "Google sign-in did not return an email address"
+    token_expired = "Session expired. Please sign in again."
+    token_invalid = "Session is invalid. Please sign in again."
+    admin_not_configured = "Admin login is not configured on the server"
+    too_many_attempts = "Too many failed attempts. Try again in 15 minutes."
 
     # Products
     products_fetched = "Products retrieved successfully"
@@ -36,10 +28,6 @@ class CustomMessages:
     product_not_found = "Product does not exist"
     invalid_product_id = "Product id is not valid"
     nothing_to_update = "Provide at least one field (or a new image) to update"
-
-    # Cart
-    cart_fetched = "Cart retrieved successfully"
-    cart_saved = "Cart saved successfully"
 
     # Images
     image_too_large = "Image is too large"

@@ -1,7 +1,6 @@
 from fastapi import APIRouter
 
 from app.api.v1.auth_routes import router as auth_router
-from app.api.v1.cart_routes import router as cart_router
 from app.api.v1.product_routes import admin_router as admin_product_router
 from app.api.v1.product_routes import router as product_router
 from app.services.health_service import HealthService
@@ -32,4 +31,3 @@ async def health_check():
 router.include_router(auth_router)
 router.include_router(product_router)
 router.include_router(admin_product_router)
-router.include_router(cart_router)

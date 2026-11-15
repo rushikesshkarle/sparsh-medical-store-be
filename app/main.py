@@ -7,8 +7,6 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.v1.routes import router as api_router
 from app.core.config import settings
-from app.services.auth_service import ensure_user_indexes
-from app.services.cart_service import ensure_cart_indexes
 from app.services.product_service import ensure_product_indexes
 from app.shared.constants import GlobalConstants, ImageConstants
 from app.shared.db_connections.mongo import mongodb
@@ -27,8 +25,6 @@ async def lifespan(app: FastAPI):
     logging.info("Starting up Sparsh Medical API...")
     await mongodb.connect()
     await ensure_product_indexes()
-    await ensure_user_indexes()
-    await ensure_cart_indexes()
     logging.info("Startup complete")
     yield
     logging.info("Shutting down Sparsh Medical API...")

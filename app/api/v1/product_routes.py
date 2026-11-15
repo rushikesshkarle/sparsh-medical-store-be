@@ -9,14 +9,14 @@ from app.services.product_service import ProductService
 from app.shared.constants import HTTPCodes, ProductConstants, ProductSort, ProductStatus
 from app.shared.custom_messages import CustomMessages
 from app.shared.custom_response import CustomResponse
-from app.shared.security import require_admin
+from app.shared.security import get_current_admin
 
 # Public storefront reads.
 router = APIRouter(prefix="/products", tags=["Products"])
 
-# Admin catalogue management — every route requires a signed-in admin (ALLOWED_ADMIN_EMAILS).
+# Admin catalogue management — every route requires the admin's Bearer token.
 admin_router = APIRouter(
-    prefix="/admin/products", tags=["Admin · Products"], dependencies=[Depends(require_admin)]
+    prefix="/admin/products", tags=["Admin · Products"], dependencies=[Depends(get_current_admin)]
 )
 
 SearchQuery = Annotated[Optional[str], Query(max_length=ProductConstants.SEARCH_MAX_LENGTH)]

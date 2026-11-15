@@ -34,23 +34,19 @@ class Settings:
         """Load database, auth, CORS and media settings from the environment."""
         self.app_env = os.getenv("APP_ENV", "development").lower()
 
-        # MongoDB — product catalogue and user accounts.
+        # MongoDB — product catalogue.
         self.mongo_uri = os.getenv("MONGO_URI", "mongodb://localhost:27017")
         self.mongo_db = os.getenv("MONGO_DB", "sparsh-medical")
 
-        # JWT — issued by this API after a successful Google sign-in.
+        # JWT — issued to the admin after a username/password login.
         self.jwt_secret_key = os.getenv("JWT_SECRET_KEY", "change-me-in-production")
         self.jwt_algorithm = os.getenv("JWT_ALGORITHM", "HS256")
         self.access_token_expire_minutes = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "720"))
 
-        # Google OAuth (popup/auth-code flow). The client id must match the
-        # frontend's VITE_GOOGLE_CLIENT_ID; the secret never leaves the backend.
-        self.google_client_id = os.getenv("GOOGLE_CLIENT_ID", "").strip()
-        self.google_client_secret = os.getenv("GOOGLE_CLIENT_SECRET", "").strip()
-
-        # Emails that get the admin dashboard (comma-separated). Anyone else who
-        # signs in with Google is a normal customer. Empty = nobody is admin.
-        self.allowed_admin_emails = os.getenv("ALLOWED_ADMIN_EMAILS", "")
+        # The one admin account. Customers have no accounts (they shop as guests).
+        # Empty password = admin login disabled.
+        self.admin_username = os.getenv("ADMIN_USERNAME", "admin").strip()
+        self.admin_password = os.getenv("ADMIN_PASSWORD", "")
 
         # CORS — browser origins allowed to call the API (comma-separated).
         self.cors_allow_origins = os.getenv(
@@ -88,11 +84,6 @@ class Settings:
         return _split_csv(self.cors_allow_origins)
 
     @property
-    def allowed_admin_emails_set(self) -> set[str]:
-        """Return the admin allowlist, lower-cased for case-insensitive matching."""
-        return {email.lower() for email in _split_csv(self.allowed_admin_emails)}
-
-    @property
     def use_cloudinary(self) -> bool:
         """Return True when Cloudinary credentials are configured."""
         return bool(self.cloudinary_cloud_name and self.cloudinary_api_key and self.cloudinary_api_secret)
@@ -103,11 +94,11 @@ class Settings:
         return self.max_image_size_mb * 1024 * 1024
 
     def validate_for_production(self) -> None:
-        """Fail fast when production is started with a dev-only secret or no Google client.
+        """Fail fast when production is started with a dev-only secret or a weak admin password.
 
         Raises:
             RuntimeError: If ``JWT_SECRET_KEY`` is the default or shorter than 32
-                characters, or Google OAuth is not configured.
+                characters, or ``ADMIN_PASSWORD`` is shorter than 12 characters.
         """
         if not self.is_production:
             return
@@ -115,8 +106,8 @@ class Settings:
             raise RuntimeError(
                 "JWT_SECRET_KEY must be set to a random value of at least 32 characters in production"
             )
-        if not self.google_client_id or not self.google_client_secret:
-            raise RuntimeError("GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be set in production")
+        if len(self.admin_password) < 12:
+            raise RuntimeError("ADMIN_PASSWORD must be set to at least 12 characters in production")
 
 
 # Singleton instance used across the app.

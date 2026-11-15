@@ -16,27 +16,18 @@ class HealthConstants:
 
 class CollectionNames:
     PRODUCTS = "products"
-    USERS = "users"
-    CARTS = "carts"
-
-
-class CartConstants:
-    """Limits on a saved cart."""
-
-    MAX_LINES = 100
-    MAX_QUANTITY = 99
 
 
 class AuthConstants:
-    """Google sign-in rules."""
+    """Admin login rules."""
 
-    # Issuers a Google ID token may carry.
-    ALLOWED_ISSUERS = ("accounts.google.com", "https://accounts.google.com")
-    GOOGLE_TOKEN_URI = "https://oauth2.googleapis.com/token"
-    # The GIS popup/code flow exchanges codes with this pseudo redirect URI.
-    POPUP_REDIRECT_URI = "postmessage"
-    TOKEN_EXCHANGE_TIMEOUT_SECONDS = 10
-    CODE_MAX_LENGTH = 2048
+    # JWT subject for the single admin account.
+    ADMIN_SUBJECT = "admin"
+    # Brute-force throttle: this many failed logins per IP within the window → 429.
+    MAX_FAILED_LOGINS = 5
+    # Across ALL IPs (client IPs can be spoofed via X-Forwarded-For): this many → 429.
+    MAX_FAILED_LOGINS_GLOBAL = 30
+    LOGIN_WINDOW_SECONDS = 15 * 60
 
 
 class ProductConstants:
@@ -123,5 +114,6 @@ class HTTPCodes:
     REQUEST_ENTITY_TOO_LARGE = 413
     UNSUPPORTED_MEDIA_TYPE = 415
     UNPROCESSABLE_ENTITY = 422
+    TOO_MANY_REQUESTS = 429
     INTERNAL_SERVER_ERROR = 500
     SERVICE_UNAVAILABLE = 503
