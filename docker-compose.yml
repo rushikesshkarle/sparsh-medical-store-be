@@ -1,0 +1,38 @@
+services:
+  sparsh-medical-mongo:
+    image: mongo:7
+    container_name: sparsh-medical-mongo
+    ports:
+      # Host loopback only; the backend reaches it over the compose network.
+      - "127.0.0.1:27019:27017"
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "localhost:27017/test", "--eval", "db.runCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  sparsh-medical-backend:
+    build: .
+    container_name: sparsh-medical-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      # Must name the mongo SERVICE, not localhost.
+      MONGO_URI: mongodb://sparsh-medical-mongo:27017
+      MEDIA_DIR: /app/media
+    volumes:
+      # Uploaded product images survive rebuilds and redeploys.
+      - media_data:/app/media
+    depends_on:
+      sparsh-medical-mongo:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  mongo_data:
+  media_data:

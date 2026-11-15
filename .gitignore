@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+*.log
+media/*
+!media/products/
+media/products/*
+!media/products/.gitkeep

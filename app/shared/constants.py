@@ -1,0 +1,110 @@
+class GlobalConstants:
+    log_file_path = "app.log"
+    # Reported by ``GET /health`` and as the OpenAPI version.
+    app_version = "1.0.0"
+
+
+class HealthConstants:
+    """Verdicts reported by ``GET /health``."""
+
+    STATUS_UP = "up"
+    STATUS_DOWN = "down"
+    STATUS_HEALTHY = "healthy"
+    STATUS_DEGRADED = "degraded"
+    LATENCY_DECIMALS = 2
+
+
+class CollectionNames:
+    PRODUCTS = "products"
+    USERS = "users"
+    CARTS = "carts"
+
+
+class CartConstants:
+    """Limits on a saved cart."""
+
+    MAX_LINES = 100
+    MAX_QUANTITY = 99
+
+
+class AuthConstants:
+    """Google sign-in rules."""
+
+    # Issuers a Google ID token may carry.
+    ALLOWED_ISSUERS = ("accounts.google.com", "https://accounts.google.com")
+    GOOGLE_TOKEN_URI = "https://oauth2.googleapis.com/token"
+    # The GIS popup/code flow exchanges codes with this pseudo redirect URI.
+    POPUP_REDIRECT_URI = "postmessage"
+    TOKEN_EXCHANGE_TIMEOUT_SECONDS = 10
+    CODE_MAX_LENGTH = 2048
+
+
+class ProductConstants:
+    """Rules a product must follow, enforced on create and update."""
+
+    NAME_MAX_LENGTH = 200
+    CATEGORY_MAX_LENGTH = 100
+    DESCRIPTION_MAX_LENGTH = 5000
+    # Same bound as the Django model: DecimalField(max_digits=10, decimal_places=2).
+    PRICE_MAX = 99_999_999.99
+    SEARCH_MAX_LENGTH = 100
+
+    # Categories shown on the storefront's "Shop by Category" cards. A product's
+    # category is free text (as in the Django model); these are the suggestions.
+    SUGGESTED_CATEGORIES = (
+        "Medicines",
+        "Vitamins",
+        "Personal Care",
+        "Hair Care",
+        "Healthcare",
+    )
+
+    DEFAULT_PAGE_SIZE = 24
+    MAX_PAGE_SIZE = 100
+
+    # At or below this stock (and above 0) a product counts as "low stock".
+    LOW_STOCK_THRESHOLD = 5
+
+
+class ProductSort:
+    """Sort orders for product listings (``?sort=``)."""
+
+    NEWEST = "newest"
+    PRICE_ASC = "price_asc"
+    PRICE_DESC = "price_desc"
+
+
+class ProductStatus:
+    """Admin listing filter (``?status=``)."""
+
+    ALL = "all"
+    LIVE = "live"
+    HIDDEN = "hidden"
+    LOW_STOCK = "low_stock"
+
+
+class ImageConstants:
+    """Accepted product image formats (checked by decoding, not by extension)."""
+
+    # Pillow format name → file extension written to disk.
+    ALLOWED_FORMATS = {"JPEG": "jpg", "PNG": "png", "WEBP": "webp", "GIF": "gif"}
+    UPLOAD_SUBDIR = "products"
+    MEDIA_URL_PREFIX = "/media"
+    # Reject decompression bombs before Pillow allocates the pixels.
+    MAX_PIXELS = 40_000_000
+
+
+class HTTPCodes:
+    OK = 200
+    CREATED = 201
+    NO_CONTENT = 204
+    BAD_REQUEST = 400
+    UNAUTHORIZED = 401
+    FORBIDDEN = 403
+    NOT_FOUND = 404
+    CONFLICT = 409
+    REQUEST_ENTITY_TOO_LARGE = 413
+    UNSUPPORTED_MEDIA_TYPE = 415
+    UNPROCESSABLE_ENTITY = 422
+    INTERNAL_SERVER_ERROR = 500
+    SERVICE_UNAVAILABLE = 503
