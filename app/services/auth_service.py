@@ -56,7 +56,7 @@ class AuthService:
             HTTPException: 503 if no admin is configured, 429 after too many
                 failed attempts from this IP, 401 for a wrong username or password.
         """
-        if not settings.admin_username or not settings.admin_password:
+        if not settings.admin_login_enabled:
             raise_custom_error(HTTPCodes.SERVICE_UNAVAILABLE, CustomMessages.admin_not_configured)
 
         attempts = _recent_failures(client_ip)

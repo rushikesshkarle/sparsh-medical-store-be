@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 from urllib.parse import unquote, urlparse
@@ -7,6 +8,10 @@ from dotenv import load_dotenv
 # Load .env for local development. In Docker the values come from env_file (.env)
 # via docker-compose, so this is a no-op there.
 load_dotenv()
+
+
+# Production refuses admin passwords shorter than this (admin login is disabled instead).
+ADMIN_PASSWORD_MIN_LENGTH = 12
 
 
 def _split_csv(value: str) -> list[str]:
@@ -84,6 +89,13 @@ class Settings:
         return _split_csv(self.cors_allow_origins)
 
     @property
+    def admin_login_enabled(self) -> bool:
+        """Admin login works only with a username and, in production, a 12+ character password."""
+        if not self.admin_username or not self.admin_password:
+            return False
+        return not self.is_production or len(self.admin_password) >= ADMIN_PASSWORD_MIN_LENGTH
+
+    @property
     def use_cloudinary(self) -> bool:
         """Return True when Cloudinary credentials are configured."""
         return bool(self.cloudinary_cloud_name and self.cloudinary_api_key and self.cloudinary_api_secret)
@@ -94,11 +106,13 @@ class Settings:
         return self.max_image_size_mb * 1024 * 1024
 
     def validate_for_production(self) -> None:
-        """Fail fast when production is started with a dev-only secret or a weak admin password.
+        """Fail fast when production is started with a dev-only JWT secret.
+
+        A missing or weak ``ADMIN_PASSWORD`` does NOT stop the app (the public
+        store stays up); it only disables admin login — see ``admin_login_enabled``.
 
         Raises:
-            RuntimeError: If ``JWT_SECRET_KEY`` is the default or shorter than 32
-                characters, or ``ADMIN_PASSWORD`` is shorter than 12 characters.
+            RuntimeError: If ``JWT_SECRET_KEY`` is the default or shorter than 32 characters.
         """
         if not self.is_production:
             return
@@ -106,8 +120,12 @@ class Settings:
             raise RuntimeError(
                 "JWT_SECRET_KEY must be set to a random value of at least 32 characters in production"
             )
-        if len(self.admin_password) < 12:
-            raise RuntimeError("ADMIN_PASSWORD must be set to at least 12 characters in production")
+        if not self.admin_login_enabled:
+            logging.error(
+                "ADMIN_PASSWORD is missing or shorter than %s characters: admin login is DISABLED "
+                "(the store still works). Set it in the environment and restart.",
+                ADMIN_PASSWORD_MIN_LENGTH,
+            )
 
 
 # Singleton instance used across the app.
