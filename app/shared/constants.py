@@ -1,7 +1,7 @@
 class GlobalConstants:
     log_file_path = "app.log"
     # Reported by ``GET /health`` and as the OpenAPI version.
-    app_version = "1.0.0"
+    app_version = "1.1.0"
 
 
 class HealthConstants:
