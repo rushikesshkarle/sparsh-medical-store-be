@@ -71,8 +71,11 @@ Idempotent (skips products already imported). Django admin users are **not** mig
 ## Production notes
 
 - `APP_ENV=production` refuses to start unless `JWT_SECRET_KEY` is 32+ random characters.
-- Product images live on disk in `MEDIA_DIR`; mount a **persistent volume** there
-  (compose does). On hosts with an ephemeral disk, use a volume/disk add-on.
+- Product images are resized to 1200px and stored as WebP. With `CLOUDINARY_*` set they
+  go to Cloudinary (use this on Render free, whose disk is wiped on restart); otherwise
+  they live on disk in `MEDIA_DIR` — mount a **persistent volume** there (compose does).
+- Public product listings and categories are cached for 60s per worker; admin writes
+  clear the cache, so the storefront reflects changes within a minute.
 - Set `CORS_ALLOW_ORIGINS` to the frontend's origin(s) if it calls the API cross-origin.
 - `APP_ENV=production` also requires `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
 - Add or remove admins by editing `ALLOWED_ADMIN_EMAILS` and restarting; no database change needed.

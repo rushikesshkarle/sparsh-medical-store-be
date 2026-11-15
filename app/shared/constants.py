@@ -62,6 +62,10 @@ class ProductConstants:
     DEFAULT_PAGE_SIZE = 24
     MAX_PAGE_SIZE = 100
 
+    # Public storefront listings/categories are cached this long per worker.
+    PUBLIC_CACHE_TTL_SECONDS = 60
+    PUBLIC_CACHE_MAX_ENTRIES = 500
+
     # At or below this stock (and above 0) a product counts as "low stock".
     LOW_STOCK_THRESHOLD = 5
 
@@ -92,6 +96,19 @@ class ImageConstants:
     MEDIA_URL_PREFIX = "/media"
     # Reject decompression bombs before Pillow allocates the pixels.
     MAX_PIXELS = 40_000_000
+
+    # Every upload is re-encoded: longest side capped, saved as WebP. Keeps
+    # storage and (on Cloudinary's free plan) bandwidth credits low.
+    MAX_DIMENSION = 1200
+    WEBP_QUALITY = 82
+    STORED_EXTENSION = "webp"
+
+    # Stored image reference prefix for Cloudinary-hosted images.
+    CLOUDINARY_PREFIX = "cloudinary:"
+    CLOUDINARY_API = "https://api.cloudinary.com/v1_1"
+    # f_auto/q_auto: Cloudinary serves WebP/AVIF at an automatic quality.
+    CLOUDINARY_DELIVERY = "https://res.cloudinary.com/{cloud}/image/upload/f_auto,q_auto/{public_id}"
+    CLOUDINARY_TIMEOUT_SECONDS = 30
 
 
 class HTTPCodes:

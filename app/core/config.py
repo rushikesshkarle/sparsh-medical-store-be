@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from urllib.parse import unquote, urlparse
 
 from dotenv import load_dotenv
 
@@ -11,6 +12,14 @@ load_dotenv()
 def _split_csv(value: str) -> list[str]:
     """Split a comma-separated env value into trimmed, non-empty items."""
     return [item.strip().rstrip("/") for item in value.split(",") if item.strip()]
+
+
+def _parse_cloudinary_url(value: str) -> tuple[str, str, str]:
+    """Split ``cloudinary://key:secret@cloud`` into (key, secret, cloud); blanks if unset/invalid."""
+    parsed = urlparse(value.strip())
+    if parsed.scheme != "cloudinary" or not parsed.hostname:
+        return "", "", ""
+    return unquote(parsed.username or ""), unquote(parsed.password or ""), parsed.hostname
 
 
 class Settings:
@@ -53,6 +62,17 @@ class Settings:
         self.media_dir = Path(os.getenv("MEDIA_DIR", "media")).resolve()
         self.max_image_size_mb = int(os.getenv("MAX_IMAGE_SIZE_MB", "5"))
 
+        # Cloudinary — when all three are set, product images are stored there
+        # (needed on hosts whose disk is wiped on restart, e.g. Render free).
+        # Unset = images stay on local disk under MEDIA_DIR. Either set
+        # CLOUDINARY_URL (cloudinary://<api_key>:<api_secret>@<cloud_name>, as the
+        # dashboard shows it) or the three separate variables (these win).
+        url_key, url_secret, url_cloud = _parse_cloudinary_url(os.getenv("CLOUDINARY_URL", ""))
+        self.cloudinary_cloud_name = os.getenv("CLOUDINARY_CLOUD_NAME", "").strip() or url_cloud
+        self.cloudinary_api_key = os.getenv("CLOUDINARY_API_KEY", "").strip() or url_key
+        self.cloudinary_api_secret = os.getenv("CLOUDINARY_API_SECRET", "").strip() or url_secret
+        self.cloudinary_folder = os.getenv("CLOUDINARY_FOLDER", "sparsh-medical/products").strip("/ ")
+
         # Public base URL of this API, used to build absolute image URLs. Empty =
         # relative URLs (``/media/...``), fine when the frontend proxies /media.
         self.public_base_url = os.getenv("PUBLIC_BASE_URL", "").rstrip("/")
@@ -71,6 +91,11 @@ class Settings:
     def allowed_admin_emails_set(self) -> set[str]:
         """Return the admin allowlist, lower-cased for case-insensitive matching."""
         return {email.lower() for email in _split_csv(self.allowed_admin_emails)}
+
+    @property
+    def use_cloudinary(self) -> bool:
+        """Return True when Cloudinary credentials are configured."""
+        return bool(self.cloudinary_cloud_name and self.cloudinary_api_key and self.cloudinary_api_secret)
 
     @property
     def max_image_size_bytes(self) -> int:

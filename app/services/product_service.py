@@ -14,6 +14,10 @@ from app.shared.constants import CollectionNames, HTTPCodes, ProductConstants, P
 from app.shared.custom_error import raise_custom_error
 from app.shared.custom_messages import CustomMessages
 from app.shared.db_connections.mongo import mongodb
+from app.shared.ttl_cache import TTLCache
+
+# Storefront listings and categories (public, read-heavy). Cleared on every write.
+_public_cache = TTLCache(ProductConstants.PUBLIC_CACHE_TTL_SECONDS, ProductConstants.PUBLIC_CACHE_MAX_ENTRIES)
 
 _CENTS = Decimal("0.01")
 
@@ -94,6 +98,14 @@ class ProductService:
         metacharacters in the query are escaped, so it is always a literal match.
         ``status`` (admin only) narrows to live, hidden or low-stock products.
         """
+        # The public storefront is served from a short cache; admin views are always fresh.
+        cache_key = None
+        if not include_unavailable:
+            cache_key = ("list", search, category, page, page_size, sort, in_stock_only)
+            cached = _public_cache.get(cache_key)
+            if cached is not None:
+                return cached
+
         query: dict = {} if include_unavailable else {"is_available": True}
         if include_unavailable and status == ProductStatus.LIVE:
             query["is_available"] = True
@@ -123,7 +135,10 @@ class ProductService:
             .limit(page_size)
         )
         items = [_to_public(doc) async for doc in cursor]
-        return ProductPage(items=items, total=total, page=page, page_size=page_size)
+        result = ProductPage(items=items, total=total, page=page, page_size=page_size)
+        if cache_key is not None:
+            _public_cache.set(cache_key, result)
+        return result
 
     async def stats(self) -> ProductStats:
         """Counts for the admin dashboard, in one aggregation round trip."""
@@ -153,11 +168,16 @@ class ProductService:
 
     async def list_categories(self) -> list[str]:
         """Return the suggested categories plus any others used by available products."""
+        cached = _public_cache.get("categories")
+        if cached is not None:
+            return cached
         db = await mongodb.get_database()
         used = await db[CollectionNames.PRODUCTS].distinct("category", {"is_available": True})
         seen = {c.lower() for c in ProductConstants.SUGGESTED_CATEGORIES}
         extra = sorted({c for c in used if c and c.lower() not in seen}, key=str.lower)
-        return [*ProductConstants.SUGGESTED_CATEGORIES, *extra]
+        result = [*ProductConstants.SUGGESTED_CATEGORIES, *extra]
+        _public_cache.set("categories", result)
+        return result
 
     async def get_product(self, product_id: str, *, include_unavailable: bool = False) -> ProductPublic:
         """Fetch one product; hidden products are 404 for the public storefront."""
@@ -195,6 +215,7 @@ class ProductService:
             image_service.delete(image_path)
             raise
         doc["_id"] = result.inserted_id
+        _public_cache.clear()
         return _to_public(doc)
 
     async def update_product(
@@ -240,6 +261,7 @@ class ProductService:
 
         if "image" in changes:
             image_service.delete(existing.get("image"))
+        _public_cache.clear()
         return _to_public(doc)
 
     async def delete_product(self, product_id: str) -> None:
@@ -248,4 +270,5 @@ class ProductService:
         doc = await db[CollectionNames.PRODUCTS].find_one_and_delete({"_id": _object_id(product_id)})
         if not doc:
             raise_custom_error(HTTPCodes.NOT_FOUND, CustomMessages.product_not_found)
+        _public_cache.clear()
         ImageService().delete(doc.get("image"))
