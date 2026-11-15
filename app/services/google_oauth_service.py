@@ -58,8 +58,14 @@ class GoogleOAuthService:
             raise_custom_error(HTTPCodes.UNAUTHORIZED, CustomMessages.google_code_exchange_failed)
 
         if response.status_code != 200:
-            logging.warning("Google code exchange rejected (status=%s)", response.status_code)
-            raise_custom_error(HTTPCodes.UNAUTHORIZED, CustomMessages.google_code_exchange_failed)
+            # Google's error code (e.g. invalid_grant, redirect_uri_mismatch) is not
+            # secret and is what makes a failed sign-in diagnosable.
+            try:
+                reason = str(response.json().get("error", "unknown"))[:64]
+            except ValueError:
+                reason = "unknown"
+            logging.warning("Google code exchange rejected (status=%s, error=%s)", response.status_code, reason)
+            raise_custom_error(HTTPCodes.UNAUTHORIZED, CustomMessages.google_code_exchange_failed, error=reason)
 
         token = response.json().get("id_token")
         if not token:
@@ -79,8 +85,9 @@ class GoogleOAuthService:
             claims = await asyncio.to_thread(
                 google_id_token.verify_oauth2_token, token, _google_request, settings.google_client_id
             )
-        except ValueError:
-            raise_custom_error(HTTPCodes.UNAUTHORIZED, CustomMessages.invalid_google_token)
+        except ValueError as exc:
+            logging.warning("Google ID token rejected: %s", str(exc)[:200])
+            raise_custom_error(HTTPCodes.UNAUTHORIZED, CustomMessages.invalid_google_token, error=str(exc)[:120])
         except Exception:  # noqa: BLE001 — any library failure is a failed sign-in
             logging.exception("Google token verification failed unexpectedly")
             raise_custom_error(HTTPCodes.UNAUTHORIZED, CustomMessages.invalid_google_token)
